@@ -28,7 +28,7 @@ module S3deploy
     private
 
     def copy_files_to_s3()
-      dir = File.join(app_path_with_bucket, rev)
+      dir = app_path_with_bucket
       source_files_list.each do |file|
         s3_file_dir = Pathname.new(
           File.dirname(file)).relative_path_from(
