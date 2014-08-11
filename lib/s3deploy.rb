@@ -1,8 +1,6 @@
 require 'aws/s3'
-require 'json'
 require 'zlib'
 require 'stringio'
-require 'tzinfo'
 require "s3deploy/version"
 
 class S3deploy
