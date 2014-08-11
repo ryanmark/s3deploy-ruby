@@ -3,7 +3,7 @@ require 'zlib'
 require 'stringio'
 require 's3deploy/version'
 
-class S3deploy
+module S3deploy
   class << self
     attr_reader :config
 
