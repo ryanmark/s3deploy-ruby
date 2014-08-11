@@ -1,13 +1,10 @@
 module S3deploy
   class Config
-    attr_reader :version, :revision, :env
+    attr_reader :env
 
     def initialize
-      @version = ENV["VERSION"] || ""
-      @revision = ENV["REVISION"] || ""
       @env = ENV["ENV"] || "staging"
       @env_settings = {}
-      colorize true
     end
 
     %w{
@@ -30,4 +27,4 @@ module S3deploy
       end
     end
   end
-en
+end
