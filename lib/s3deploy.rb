@@ -2,6 +2,7 @@ require 'aws/s3'
 require 'zlib'
 require 'stringio'
 require 's3deploy/version'
+require 's3deploy/color'
 require 's3deploy/config'
 
 module S3deploy
@@ -48,6 +49,16 @@ module S3deploy
       AWS::S3::S3Object.value(key, path)
     end
 
+    def store_value(key, value, path)
+      puts "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3#{", #{colorize(:green, 'gzipped')}" if should_compress?(key)}"
+      options = {access: :public_read}
+      if should_compress?(key)
+        options[:content_encoding] = "gzip"
+        value = compress(value)
+      end
+      AWS::S3::S3Object.store(key, value, path, options)
+    end
+
     def should_compress?(key)
       if [true, false, nil].include?(config.gzip)
         !!config.gzip
@@ -73,6 +84,10 @@ module S3deploy
 
     def source_files_list
       Dir.glob(File.join(config.dist_dir, '**/*')).select { |f| File.file?(f) }
+    end
+
+    def colorize(color, text)
+      Color.send(color, text)
     end
 
     class Stream < StringIO
