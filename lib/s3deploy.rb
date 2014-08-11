@@ -2,6 +2,7 @@ require 'aws/s3'
 require 'zlib'
 require 'stringio'
 require 's3deploy/version'
+require 's3deploy/config'
 
 module S3deploy
   class << self
