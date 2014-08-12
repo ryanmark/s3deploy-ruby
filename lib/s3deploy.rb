@@ -53,7 +53,7 @@ module S3deploy
       puts "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3#{", #{colorize(:green, 'gzipped')}" if should_compress?(key)}"
       options = {
         access: :public_read,
-        cache_control: 'max-age=60'
+        cache_control: 'public,max-age=60'
       }
       if should_compress?(key)
         options[:content_encoding] = 'gzip'
