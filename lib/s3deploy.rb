@@ -51,9 +51,12 @@ module S3deploy
 
     def store_value(key, value, path)
       puts "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3#{", #{colorize(:green, 'gzipped')}" if should_compress?(key)}"
-      options = {access: :public_read}
+      options = {
+        access: :public_read,
+        cache_control: 'max-age=60'
+      }
       if should_compress?(key)
-        options[:content_encoding] = "gzip"
+        options[:content_encoding] = 'gzip'
         value = compress(value)
       end
       AWS::S3::S3Object.store(key, value, path, options)
