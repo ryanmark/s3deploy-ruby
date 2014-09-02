@@ -1,4 +1,6 @@
 require 'aws/s3'
+require 'mime/types'
+require 'digest/md5'
 require 'zlib'
 require 'stringio'
 require 's3deploy/version'
@@ -14,10 +16,9 @@ module S3deploy
       @config.instance_eval(&block)
       @config.apply_environment_settings!
 
-      AWS::S3::Base.establish_connection!(
+      @conn = AWS::S3.new(
         access_key_id: config.access_key_id,
-        secret_access_key: config.secret_access_key
-      )
+        secret_access_key: config.secret_access_key)
     end
 
     def deploy!
@@ -30,14 +31,26 @@ module S3deploy
 
     def copy_files_to_s3()
       dir = app_path_with_bucket
+      uploaded = false
+      files_changed = files_skipped = 0
       source_files_list.each do |file|
         s3_file_dir = Pathname.new(
           File.dirname(file)).relative_path_from(
             Pathname.new(config.dist_dir)).to_s
         absolute_s3_file_dir = s3_file_dir == '.' ? dir : File.join(dir, s3_file_dir)
-        store_value(
-          File.basename(file), File.read(file), absolute_s3_file_dir)
+        uploaded = store_value(
+          File.basename(file),
+          File.read(file),
+          absolute_s3_file_dir)
+        if uploaded
+          files_changed += 1
+        else
+          files_skipped += 1
+        end
       end
+      puts 'Deploy complete. ' +
+           colorize(:yellow, "#{files_changed} files updated") +
+           ", #{files_skipped} files unchanged"
     end
 
     def app_path_with_bucket
@@ -46,27 +59,54 @@ module S3deploy
 
     def get_value(key, path)
       puts "Retrieving value #{key} from #{path} on S3"
-      AWS::S3::S3Object.value(key, path)
+      parts = path.split('/') + [key]
+      bucket = @conn.buckets[parts.shift]
+      bucket.objects[parts.join('/')].read
     end
 
     def store_value(key, value, path)
-      puts "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3#{", #{colorize(:green, 'gzipped')}" if should_compress?(key)}"
+      parts = path.split('/') + [key]
+      bucket = @conn.buckets[parts.shift]
+      obj = bucket.objects[parts.join('/')]
+
+      mime = MIME::Types.type_for(key).first
+      if mime.nil?
+        content_type = 'text/plain'
+      else
+        content_type = mime.content_type
+      end
+
+      md5 = Digest::MD5.hexdigest(value).to_s
+      checksum = obj.head.meta['md5_checksum']
+      return false if md5 == checksum
+
       options = {
-        access: :public_read,
-        cache_control: 'public,max-age=60'
+        acl: :public_read,
+        cache_control: 'public,max-age=60',
+        content_type: content_type,
+        metadata: {
+          md5_checksum: md5
+        }
       }
       if should_compress?(key)
         options[:content_encoding] = 'gzip'
         value = compress(value)
       end
-      AWS::S3::S3Object.store(key, value, path, options)
+
+      puts "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3#{", #{colorize(:green, 'gzipped')}" if should_compress?(key)}"
+
+      obj.write(value, options)
+      true
     end
 
     def should_compress?(key)
       if [true, false, nil].include?(config.gzip)
         !!config.gzip
       else
-        key != Array(config.gzip).any? { |regexp| key.match(regexp) }
+        for re in config.gzip
+          return true if key =~ re
+        end
+        false
       end
     end
 
