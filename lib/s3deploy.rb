@@ -77,8 +77,10 @@ module S3deploy
       end
 
       md5 = Digest::MD5.hexdigest(value).to_s
-      checksum = obj.head.meta['md5_checksum']
-      return false if md5 == checksum
+      if obj.exists?
+        checksum = obj.head.meta['md5_checksum']
+        return false if md5 == checksum
+      end
 
       options = {
         acl: :public_read,
