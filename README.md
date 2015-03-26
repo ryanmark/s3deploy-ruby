@@ -10,9 +10,9 @@ Add this line to your application's Gemfile:
 
 And then execute:
 
-    $ bundle
+    $ bundle install
 
-## Usage
+## Rake usage
 
 Your Rakefile should look something like this:
 
@@ -29,11 +29,11 @@ S3deploy.configure do
   dist_dir "dist" # local dir to deploy from
   gzip [/\.js$/, /\.css$/, /\.json$/, /\.html$/, /\.csv$/] # or just use 'true' to gzip everything
 
-  before_deploy ->(version) do
+  before_deploy -> do
     # Some custom code to execute before deploy
   end
 
-  after_deploy ->(version) do
+  after_deploy -> do
     # Some custom code to execute after deploy
   end
 
@@ -54,6 +54,26 @@ To actually deploy:
 To deploy to production:
 
     $ ENV=production rake s3:deploy
+
+## API Usage
+
+You can also use the deployer in your own code as a plain old object.
+
+```ruby
+require 's3deploy/deployer'
+
+deployer = S3deploy::Deployer.new(
+    # required
+    dist_dir: 'upload',
+    bucket: 'my-bucket',
+    # optional
+    access_key_id: 'AWS access key id',
+    secret_access_key: 'AWS access key',
+    app_path: 'graphics/foo',
+    gzip: [/\.js$/, /\.css$/, /\.html?$/],
+    logger: Rails.logger
+)
+```
 
 ## Contributing
 
