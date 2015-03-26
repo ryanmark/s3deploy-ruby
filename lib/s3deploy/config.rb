@@ -1,16 +1,17 @@
 module S3deploy
+  # Settings for a deploy
   class Config
     attr_reader :env
 
     def initialize
-      @env = ENV["ENV"] || "staging"
+      @env = ENV['ENV'] || 'staging'
       @env_settings = {}
     end
 
-    %w{
+    %w(
       bucket app_path dist_dir access_key_id secret_access_key gzip
-      before_deploy after_deploy
-    }.each do |method|
+      before_deploy after_deploy logger
+    ).each do |method|
       define_method method do |value = :omitted|
         instance_variable_set("@#{method}", value) unless value == :omitted
         instance_variable_get("@#{method}")
@@ -22,9 +23,7 @@ module S3deploy
     end
 
     def apply_environment_settings!
-      if @env_settings[@env.to_s]
-        instance_eval(&@env_settings[@env.to_s])
-      end
+      instance_eval(&@env_settings[@env.to_s]) if @env_settings[@env.to_s]
     end
   end
 end
