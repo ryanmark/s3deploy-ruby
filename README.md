@@ -1,6 +1,6 @@
 # S3deploy
 
-Rake tasks for pushing stuff to S3. Heavily cribbed from [Mixbook's S3 Deployer](https://github.com/Mixbook/s3_deployer). Unlike Mixbook's thing, this does no versioning or fancy revisiony stuff. Eventually needs to invalidate CloudFront.
+Rake tasks for pushing stuff to S3. Heavily cribbed from [Mixbook's S3 Deployer](https://github.com/Mixbook/s3_deployer). Unlike Mixbook's thing, this does no versioning or fancy revisiony stuff.
 
 ## Installation
 

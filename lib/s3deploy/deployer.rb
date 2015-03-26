@@ -12,10 +12,12 @@ module S3deploy
   # Class to manage a deployment
   class Deployer
     def initialize(opts)
-      @dist_dir = opts[:dist_dir]
-      @bucket   = opts[:bucket]
-      @app_path = opts[:app_path] || ''
-      @gzip     = opts[:gzip] || S3deploy::DEFAULT_GZIP
+      @dist_dir      = opts[:dist_dir]
+      @bucket        = opts[:bucket]
+      @app_path      = opts[:app_path] || ''
+      @gzip          = opts[:gzip] || S3deploy::DEFAULT_GZIP
+      @acl           = opts[:acl] || :public_read
+      @cache_control = opts[:cache_control] || 'public,max-age=60'
 
       if opts[:logger]
         @logger = opts[:logger]
@@ -86,8 +88,8 @@ module S3deploy
       end
 
       options = {
-        acl: :public_read,
-        cache_control: 'public,max-age=60',
+        acl: @acl,
+        cache_control: @cache_control,
         content_type: content_type,
         metadata: {
           md5_checksum: md5
@@ -139,6 +141,5 @@ module S3deploy
     def colorize(color, text)
       Color.send(color, text)
     end
-
   end
 end
