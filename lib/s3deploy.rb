@@ -1,3 +1,4 @@
+require 's3deploy/config'
 require 's3deploy/deployer'
 
 # Top level module for s3deploy, also a singleton instance of a Deployer
@@ -20,7 +21,7 @@ module S3deploy
         dist_dir: config.dist_dir,
         bucket: config.bucket,
         app_path: config.app_path,
-        gzip: config.logger,
+        gzip: config.gzip,
         logger: config.logger
       )
     end

@@ -12,21 +12,22 @@ module S3deploy
   # Class to manage a deployment
   class Deployer
     def initialize(opts)
-      @dist_dir = opts['dist_dir']
-      @bucket   = opts['bucket']
-      @app_path = opts['app_path'] || ''
-      @gzip     = opts['gzip'] || S3deploy::DEFAULT_GZIP
+      @dist_dir = opts[:dist_dir]
+      @bucket   = opts[:bucket]
+      @app_path = opts[:app_path] || ''
+      @gzip     = opts[:gzip] || S3deploy::DEFAULT_GZIP
 
-      if opts['logger']
-        @logger = opts['logger']
+      if opts[:logger]
+        @logger = opts[:logger]
       else
         @logger = Logger.new(STDOUT)
         @logger.level = Logger::INFO
+        @logger.formatter = proc { |_lvl, _dt, _name, msg| "#{msg}\n" }
       end
 
       @conn = AWS::S3.new(
-        access_key_id: opts['access_key_id'] || ENV['AWS_ACCESS_KEY_ID'],
-        secret_access_key: opts['secret_access_key'] || ENV['AWS_SECRET_ACCESS_KEY'])
+        access_key_id: opts[:access_key_id] || ENV['AWS_ACCESS_KEY_ID'],
+        secret_access_key: opts[:secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
     end
 
     def deploy!
