@@ -33,19 +33,9 @@ module S3deploy
     end
 
     def deploy!
-      dir = app_path_with_bucket
-      uploaded = false
       files_changed = files_skipped = 0
       source_files_list.each do |file|
-        s3_file_dir = Pathname.new(
-          File.dirname(file)).relative_path_from(
-            Pathname.new(@dist_dir)).to_s
-        absolute_s3_file_dir = s3_file_dir == '.' ? dir : File.join(dir, s3_file_dir)
-        uploaded = store_value(
-          File.basename(file),
-          File.read(file),
-          absolute_s3_file_dir)
-        if uploaded
+        if deploy_file! file
           files_changed += 1
         else
           files_skipped += 1
@@ -54,6 +44,19 @@ module S3deploy
       @logger.info('Deploy complete. ' +
                    colorize(:yellow, "#{files_changed} files updated") +
                    ", #{files_skipped} files unchanged")
+    end
+
+    def deploy_file!(file)
+      file = File.expand_path(file, @dist_dir).to_s
+      dir = app_path_with_bucket
+      s3_file_dir = Pathname.new(
+        File.dirname(file)).relative_path_from(
+          Pathname.new(@dist_dir)).to_s
+      absolute_s3_file_dir = s3_file_dir == '.' ? dir : File.join(dir, s3_file_dir)
+      store_value(
+        File.basename(file),
+        File.read(file),
+        absolute_s3_file_dir)
     end
 
     private
