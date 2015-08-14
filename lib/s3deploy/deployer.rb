@@ -18,6 +18,7 @@ module S3deploy
       @gzip          = opts[:gzip] || S3deploy::DEFAULT_GZIP
       @acl           = opts[:acl] || :public_read
       @cache_control = opts[:cache_control] || 'public,max-age=60'
+      @exclude       = opts[:exclude] || nil
 
       if opts[:logger]
         @logger = opts[:logger]
@@ -138,7 +139,20 @@ module S3deploy
     end
 
     def source_files_list
-      Dir.glob(File.join(@dist_dir, '**/*')).select { |f| File.file?(f) }
+      files = Dir.glob(File.join(@dist_dir, '**/*'))
+      if @exclude.is_a? Array
+        files.select do |f|
+          File.file?(f) && @exclude.reduce(false) do |m, c|
+            m || c.match(f)
+          end
+        end
+      elsif @exclude.is_a? Regexp
+        files.select do |f|
+          File.file?(f) && !@exclude.match(f)
+        end
+      else
+        files.select { |f| File.file?(f) }
+      end
     end
 
     def colorize(color, text)
