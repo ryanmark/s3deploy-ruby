@@ -2,11 +2,11 @@ module S3deploy
   class Color
     class << self
       def green(text)
-        self.new(32).wrap(text)
+        new(32).wrap(text)
       end
 
       def yellow(text)
-        self.new(33).wrap(text)
+        new(33).wrap(text)
       end
     end
 
@@ -15,7 +15,11 @@ module S3deploy
     end
 
     def wrap(text)
-      "\e[#{@color}m#{text}\e[0m"
+      if STDOUT.tty?
+        "\e[#{@color}m#{text}\e[0m"
+      else
+        text
+      end
     end
   end
 end
