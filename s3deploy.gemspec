@@ -8,17 +8,21 @@ Gem::Specification.new do |spec|
   spec.version       = S3deploy::VERSION
   spec.authors       = ['Ryan Mark']
   spec.email         = ['ryan@mrk.cc']
-  spec.summary       = %q(Rake task for deploying to S3)
+  spec.summary       = 'Rake task for deploying to S3'
   spec.homepage      = 'https://github.com/ryanmark/s3deploy-ruby'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0")
-  spec.test_files    = spec.files.grep(/^(test|spec|features)\//)
+  spec.test_files    = spec.files.grep(%r{^(test|spec|features)\/})
   spec.require_paths = ['lib']
 
   spec.add_dependency 'aws-sdk', '~> 1.57'
   spec.add_dependency 'mime-types'
 
   spec.add_development_dependency 'bundler', '~> 1.6'
-  spec.add_development_dependency 'rake'
+  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'yard'
+  spec.add_development_dependency 'minitest'
+  spec.add_development_dependency 'pry'
+  spec.add_development_dependency 'dotenv'
 end
