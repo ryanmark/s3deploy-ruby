@@ -31,5 +31,9 @@ module S3deploy
       @deployer.deploy!
       config.after_deploy if config.after_deploy
     end
+
+    def new(opts)
+      Deployer.new(opts)
+    end
   end
 end

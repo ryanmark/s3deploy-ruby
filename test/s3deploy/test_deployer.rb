@@ -1,63 +1,69 @@
 require 'test_helper'
 
 class TestDeployer < Minitest::Test
+  include S3deploy::TestHelper
+
+  def test_deployer_init
+    S3deploy::Deployer.new(
+      dist_dir: dir,
+      bucket: ENV['TEST_BUCKET'],
+      app_path: 's3deploytemp'
+    )
+  end
+
   def test_everything
-    skip
+    create_files!
 
-    FileUtils.mkdir_p(wd.expand 'build')
-    open(wd.expand('build/index.html'), 'w') do |fp|
-      fp.write('<h1>Hello World!</h1>')
-    end
-    open(wd.expand('build/app.css'), 'w') do |fp|
-      fp.write('h1 { font-size: 100px }')
-    end
-    assert File.exist?(wd.expand 'build/index.html'), 'File should exist'
-    assert File.exist?(wd.expand 'build/app.css'), 'File should exist'
+    url_tmpl = "http://s3.amazonaws.com/#{ENV['TEST_BUCKET']}/s3deploytemp/%s"
+    d = S3deploy::Deployer.new(
+      dist_dir: dir,
+      bucket: ENV['TEST_BUCKET'],
+      app_path: 's3deploytemp',
+      logger: logger
+    )
 
-    d.deploy(wd.expand 'build')
+    d.deploy!
 
     sleep 5
 
-    url = URI.parse('http:' + d.url_for('/'))
+    url = URI.parse(url_tmpl % 'index.html')
     req = Net::HTTP.new(url.host, url.port)
     res = req.request_head(url.path)
     assert_equal 200, res.code.to_i, "#{res.code} #{url}"
 
     sleep 5
 
-    url = URI.parse('http:' + d.url_for('app.css'))
+    url = URI.parse(url_tmpl % 'app.css')
     res = req.request_head(url.path)
     assert_equal 200, res.code.to_i, "#{res.code} #{url}"
 
-    open(wd.expand('thumb.svg'), 'w') do |fp|
-      fp.write('<svg><circle /></svg>')
-    end
-    assert File.exist?(wd.expand 'thumb.svg'), 'File should exist'
+    update_files!
 
-    d.deploy_file(p.working_dir, 'thumb.svg')
+    d.deploy_file!('circle.svg')
 
     sleep 5
 
-    url = URI.parse('http:' + d.url_for('thumb.svg'))
+    url = URI.parse(url_tmpl % 'circle.svg')
     res = req.request_head(url.path)
     assert_equal 200, res.code.to_i, "#{res.code} #{url}"
+
+    old_check_url = url_tmpl % 'index.html'
+
+    url_tmpl = "http://s3.amazonaws.com/#{ENV['TEST_BUCKET']}/foo-bar/%s"
 
     skip
 
-    old_check_url = d.url_for('index.html')
-
-    p.slug = 'foo-bar'
-    d.move!
+    d.move_to! 'foo-bar'
 
     sleep 5
 
-    url = URI.parse('http:' + old_check_url)
+    url = URI.parse(old_check_url)
     res = req.request_head(url.path)
     assert_equal 404, res.code.to_i, "#{res.code} #{url}"
 
     sleep 5
 
-    url = URI.parse('http:' + d.url_for('index.html'))
+    url = URI.parse(url_tmpl % 'index.html')
     res = req.request_head(url.path)
     assert_equal 200, res.code.to_i, "#{res.code} #{url}"
 
@@ -65,7 +71,7 @@ class TestDeployer < Minitest::Test
 
     sleep 5
 
-    url = URI.parse('http:' + d.url_for('index.html'))
+    url = URI.parse(url_tmpl % 'index.html')
     res = req.request_head(url.path)
     assert_equal 404, res.code.to_i, "#{res.code} #{url}"
   end

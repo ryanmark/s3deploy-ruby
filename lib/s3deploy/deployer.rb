@@ -1,4 +1,4 @@
-require 'aws/s3'
+require 'aws-sdk'
 require 'mime/types'
 require 'digest/md5'
 require 'zlib'
@@ -11,12 +11,13 @@ require 'logger'
 module S3deploy
   # Class to manage a deployment
   class Deployer
+    attr_reader :s3
     def initialize(opts)
-      @dist_dir      = opts[:dist_dir]
+      @dist_dir      = File.expand_path(opts[:dist_dir])
       @bucket        = opts[:bucket]
-      @app_path      = opts[:app_path] || ''
+      @app_path      = strip_slashes(opts[:app_path]) || ''
       @gzip          = opts[:gzip] || S3deploy::DEFAULT_GZIP
-      @acl           = opts[:acl] || :public_read
+      @acl           = opts[:acl] || 'public-read'
       @cache_control = opts[:cache_control] || 'public,max-age=60'
       @exclude       = opts[:exclude] || nil
 
@@ -28,13 +29,15 @@ module S3deploy
         @logger.formatter = proc { |_lvl, _dt, _name, msg| "#{msg}\n" }
       end
 
-      @conn = AWS::S3.new(
+      @s3 = Aws::S3::Client.new(
         access_key_id: opts[:access_key_id] || ENV['AWS_ACCESS_KEY_ID'],
-        secret_access_key: opts[:secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
+        secret_access_key: opts[:secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'],
+        region: opts[:region] || ENV['AWS_REGION'] || 'us-east-1')
     end
 
     def deploy!
       files_changed = files_skipped = 0
+
       source_files_list.each do |file|
         if deploy_file! file
           files_changed += 1
@@ -42,6 +45,7 @@ module S3deploy
           files_skipped += 1
         end
       end
+
       @logger.info('Deploy complete. ' +
                    colorize(:yellow, "#{files_changed} files updated") +
                    ", #{files_skipped} files unchanged")
@@ -49,11 +53,19 @@ module S3deploy
 
     def deploy_file!(file)
       file = File.expand_path(file, @dist_dir).to_s
-      dir = app_path_with_bucket
-      s3_file_dir = Pathname.new(
-        File.dirname(file)).relative_path_from(
-          Pathname.new(@dist_dir)).to_s
-      absolute_s3_file_dir = s3_file_dir == '.' ? dir : File.join(dir, s3_file_dir)
+
+      unless File.exist?(file) && file.start_with?(@dist_dir)
+        raise "File must be in #{@dist_dir}"
+      end
+
+      s3_file_dir = File.dirname(strip_slashes(file[@dist_dir.length..-1].to_s))
+
+      if s3_file_dir.empty? || s3_file_dir == '.'
+        absolute_s3_file_dir = app_path_with_bucket
+      else
+        absolute_s3_file_dir = "#{app_path_with_bucket}/#{s3_file_dir}"
+      end
+
       store_value(
         File.basename(file),
         File.read(file),
@@ -63,20 +75,35 @@ module S3deploy
     private
 
     def app_path_with_bucket
-      File.join(@bucket, @app_path)
+      "#{@bucket}/#{@app_path}"
+    end
+
+    def strip_slashes(str)
+      str.gsub(%r{(^/|/$)}, '')
     end
 
     def get_value(key, path)
       @logger.info("Retrieving value #{key} from #{path} on S3")
       parts = path.split('/') + [key]
-      bucket = @conn.buckets[parts.shift]
-      bucket.objects[parts.join('/')].read
+      @s3.get_object(bucket: parts.shift, key: parts.join('/')).body.read
+    end
+
+    def head_value(key, path)
+      parts = path.split('/') + [key]
+      @s3.head_object(
+        bucket: parts.shift,
+        key: parts.join('/'))
+    rescue Aws::S3::Errors::NotFound
+      false
     end
 
     def store_value(key, value, path)
-      parts = path.split('/') + [key]
-      bucket = @conn.buckets[parts.shift]
-      obj = bucket.objects[parts.join('/')]
+      md5 = Digest::MD5.hexdigest(value).to_s
+      resp = head_value(key, path)
+      if resp
+        checksum = resp.metadata['md5_checksum']
+        return false if md5 == checksum
+      end
 
       mime = MIME::Types.type_for(key).first
       if mime.nil?
@@ -85,13 +112,10 @@ module S3deploy
         content_type = mime.content_type
       end
 
-      md5 = Digest::MD5.hexdigest(value).to_s
-      if obj.exists?
-        checksum = obj.head.meta['md5_checksum']
-        return false if md5 == checksum
-      end
-
+      parts = path.split('/') + [key]
       options = {
+        bucket: parts.shift,
+        key: parts.join('/'),
         acl: @acl,
         cache_control: @cache_control,
         content_type: content_type,
@@ -99,16 +123,19 @@ module S3deploy
           md5_checksum: md5
         }
       }
+
       if should_compress?(key)
         options[:content_encoding] = 'gzip'
-        value = compress(value)
+        options[:body] = compress(value)
+      else
+        options[:body] = value
       end
 
       msg = "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3"
       msg += ", #{colorize(:green, 'gzipped')}" if should_compress?(key)
       @logger.info(msg)
 
-      obj.write(value, options)
+      @s3.put_object(options)
       true
     end
 

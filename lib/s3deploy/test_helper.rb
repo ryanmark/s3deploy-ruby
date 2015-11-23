@@ -9,6 +9,15 @@ module S3deploy
       @fixtures = {}
     end
 
+    def after_setup
+      skip unless ENV['TEST_BUCKET'] &&
+                  ENV['PRODUCTION_BUCKET'] &&
+                  ENV['AWS_ACCESS_KEY_ID'] &&
+                  ENV['AWS_SECRET_ACCESS_KEY']
+
+      ENV.delete 'ENV'
+    end
+
     def after_teardown
       @dirs.values.each do |dir|
         FileUtils.rm_rf(dir) if File.exist?(dir)
@@ -70,6 +79,10 @@ module S3deploy
       assert File.exist?(html_file), 'File should exist'
       assert File.exist?(css_file), 'File should exist'
       assert File.exist?(svg_file), 'File should exist'
+    end
+
+    def logger
+      @logger ||= Logger.new('/dev/null')
     end
   end
 end

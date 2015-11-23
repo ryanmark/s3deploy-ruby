@@ -3,17 +3,8 @@ require 'test_helper'
 class TestConfig < Minitest::Test
   include S3deploy::TestHelper
 
-  def after_setup
-    skip unless ENV['TEST_BUCKET'] &&
-                ENV['PRODUCTION_BUCKET'] &&
-                ENV['AWS_ACCESS_KEY_ID'] &&
-                ENV['AWS_SECRET_ACCESS_KEY']
-  end
-
   def test_config_init
     temp_dir = dir
-
-    ENV['ENV'] = 'staging'
 
     config = S3deploy::Config.new
     config.instance_eval do
