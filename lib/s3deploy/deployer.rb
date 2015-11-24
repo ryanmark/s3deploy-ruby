@@ -46,7 +46,7 @@ module S3deploy
         end
       end
 
-      @logger.info('Deploy complete. ' +
+      @logger.info('Deployed to S3. ' +
                    colorize(:yellow, "#{files_changed} files updated") +
                    ", #{files_skipped} files unchanged")
     end
@@ -70,6 +70,47 @@ module S3deploy
         File.basename(file),
         File.read(file),
         absolute_s3_file_dir)
+    end
+
+    def delete!
+      marker = nil
+      files_deleted = 0
+      loop do
+        args = {
+          bucket: @bucket,
+          prefix: @app_path
+        }
+
+        args[:marker] = marker unless marker.nil?
+
+        list = @s3.list_objects(args)
+
+        break if list.contents.nil? || list.contents.empty?
+
+        files_deleted += list.contents.length
+
+        list.contents.each do |i|
+          msg = "Delete #{colorize(:red, "#{@bucket}/#{i.key}")}"
+          @logger.info(msg)
+        end
+
+        @s3.delete_objects(
+          bucket: @bucket,
+          delete: {
+            objects: list.contents.map { |i| { key: i.key } }
+          }
+        )
+
+        break unless list.is_truncated
+
+        marker = list.next_marker
+      end
+
+      @logger.info('Deleted from S3. ' +
+                   colorize(:red, "#{files_deleted} files removed"))
+      true
+    rescue Aws::S3::Errors::NotFound
+      false
     end
 
     private
@@ -131,7 +172,7 @@ module S3deploy
         options[:body] = value
       end
 
-      msg = "Upload #{colorize(:yellow, key)} to #{colorize(:yellow, path)} on S3"
+      msg = "Upload #{colorize(:yellow, "#{path}/#{key}")}"
       msg += ", #{colorize(:green, 'gzipped')}" if should_compress?(key)
       @logger.info(msg)
 

@@ -1,6 +1,10 @@
 module S3deploy
   class Color
     class << self
+      def red(text)
+        new(31).wrap(text)
+      end
+
       def green(text)
         new(32).wrap(text)
       end
