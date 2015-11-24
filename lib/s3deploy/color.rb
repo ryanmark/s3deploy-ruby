@@ -1,26 +1,10 @@
 module S3deploy
-  class Color
-    class << self
-      def red(text)
-        new(31).wrap(text)
-      end
+  module Color
+    ANSI_COLOR = { red: 31, green: 32, yellow: 33 }
 
-      def green(text)
-        new(32).wrap(text)
-      end
-
-      def yellow(text)
-        new(33).wrap(text)
-      end
-    end
-
-    def initialize(color)
-      @color = color
-    end
-
-    def wrap(text)
+    def colorize(color, text)
       if STDOUT.tty?
-        "\e[#{@color}m#{text}\e[0m"
+        "\e[#{ANSI_COLOR[color.to_sym]}m#{text}\e[0m"
       else
         text
       end

@@ -11,6 +11,8 @@ require 'logger'
 module S3deploy
   # Class to manage a deployment
   class Deployer
+    include Color
+
     attr_reader :s3
     def initialize(opts)
       @dist_dir      = File.expand_path(opts[:dist_dir])
@@ -221,10 +223,6 @@ module S3deploy
       else
         files.select { |f| File.file?(f) }
       end
-    end
-
-    def colorize(color, text)
-      Color.send(color, text)
     end
   end
 end

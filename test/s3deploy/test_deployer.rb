@@ -19,7 +19,7 @@ class TestDeployer < Minitest::Test
       dist_dir: dir,
       bucket: ENV['TEST_BUCKET'],
       app_path: 's3deploytemp',
-      #logger: logger
+      logger: logger
     )
 
     d.deploy!
