@@ -30,9 +30,9 @@ module S3deploy
     end
 
     def deploy!
-      config.before_deploy if config.before_deploy
+      config.before_deploy.call if config.before_deploy.respond_to?(:call)
       @deployer.deploy!
-      config.after_deploy if config.after_deploy
+      config.after_deploy.call if config.after_deploy.respond_to?(:call)
     end
 
     def destroy!
