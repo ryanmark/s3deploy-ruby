@@ -17,7 +17,7 @@ module S3deploy
     def initialize(opts)
       @dist_dir      = File.expand_path(opts[:dist_dir])
       @bucket        = opts[:bucket]
-      @app_path      = strip_slashes(opts[:app_path]) || ''
+      @app_path      = strip_slashes(opts[:app_path] || '')
       @gzip          = opts[:gzip] || S3deploy::DEFAULT_GZIP
       @acl           = opts[:acl] || 'public-read'
       @cache_control = opts[:cache_control] || 'public,max-age=60'
@@ -118,6 +118,7 @@ module S3deploy
     private
 
     def app_path_with_bucket
+      return @bucket if @app_path.empty?
       "#{@bucket}/#{@app_path}"
     end
 
