@@ -19,9 +19,12 @@ module S3deploy
       @bucket        = opts[:bucket]
       @app_path      = strip_slashes(opts[:app_path] || '')
       @gzip          = opts[:gzip] || S3deploy::DEFAULT_GZIP
+      # ACL accepts private, public-read, public-read-write, authenticated-read,
+      #   aws-exec-read, bucket-owner-read, bucket-owner-full-control
       @acl           = opts[:acl] || 'public-read'
       @cache_control = opts[:cache_control] || 'public,max-age=60'
       @exclude       = opts[:exclude] || nil
+      @metadata      = opts[:metadata] || {}
 
       if opts[:logger]
         @logger = opts[:logger]
@@ -142,18 +145,18 @@ module S3deploy
     end
 
     def store_value(key, value, path)
-      md5 = Digest::MD5.hexdigest(value).to_s
-      resp = head_value(key, path)
-      if resp
-        checksum = resp.metadata['md5_checksum']
-        return false if md5 == checksum
-      end
-
       mime = MIME::Types.type_for(key).first
       if mime.nil?
         content_type = 'text/plain'
       else
         content_type = mime.content_type
+      end
+
+      md5 = Digest::MD5.hexdigest(value).to_s
+      resp = head_value(key, path)
+      if resp
+        checksum = resp.metadata['md5_checksum']
+        return false if md5 == checksum && resp.cache_control == @cache_control && resp.content_type == content_type
       end
 
       parts = path.split('/') + [key]
@@ -165,7 +168,7 @@ module S3deploy
         content_type: content_type,
         metadata: {
           md5_checksum: md5
-        }
+        }.merge(@metadata)
       }
 
       if should_compress?(key)

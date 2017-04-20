@@ -10,7 +10,7 @@ module S3deploy
 
     %w(
       bucket app_path dist_dir access_key_id secret_access_key gzip
-      before_deploy after_deploy logger
+      before_deploy after_deploy logger metadata acl cache_control exclude
     ).each do |method|
       define_method method do |value = :omitted|
         instance_variable_set("@#{method}", value) unless value == :omitted

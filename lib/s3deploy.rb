@@ -21,7 +21,11 @@ module S3deploy
         bucket: config.bucket,
         app_path: config.app_path,
         gzip: config.gzip,
-        logger: config.logger
+        logger: config.logger,
+        acl: config.acl,
+        metadata: config.metadata,
+        cache_control: config.cache_control,
+        exclude: config.exclude
       )
     end
 
