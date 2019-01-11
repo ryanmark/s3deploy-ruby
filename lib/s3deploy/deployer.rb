@@ -145,11 +145,11 @@ module S3deploy
     end
 
     def store_value(key, value, path)
-      mime = MimeMagic.by_path(value) || MimeMagic.by_magic(File.open(path))
+      mime = MimeMagic.by_path(key) || MimeMagic.by_magic(value)
       if mime.nil?
         content_type = 'text/plain'
       else
-        content_type = mime.content_type.to_s
+        content_type = mime.to_s
       end
 
       md5 = Digest::MD5.hexdigest(value).to_s
