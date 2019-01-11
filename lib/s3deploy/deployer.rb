@@ -1,5 +1,5 @@
 require 'aws-sdk'
-require 'mime/types'
+require 'mimemagic'
 require 'digest/md5'
 require 'zlib'
 require 'stringio'
@@ -145,11 +145,11 @@ module S3deploy
     end
 
     def store_value(key, value, path)
-      mime = MIME::Types.type_for(key).first
+      mime = MimeMagic.by_path(value) || MimeMagic.by_magic(File.open(path))
       if mime.nil?
         content_type = 'text/plain'
       else
-        content_type = mime.content_type
+        content_type = mime.content_type.to_s
       end
 
       md5 = Digest::MD5.hexdigest(value).to_s
